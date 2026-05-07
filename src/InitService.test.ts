@@ -188,6 +188,20 @@ describe("InitService scaffold", () => {
     expect(envExample).toContain("GH_TOKEN=");
   });
 
+  it("generates .env.example with GITLAB_TOKEN when backlog manager is gitlab-issues", async () => {
+    const dir = await makeDir();
+    await runScaffold(dir, {
+      backlogManager: getBacklogManager("gitlab-issues"),
+    });
+
+    const envExample = await readFile(
+      join(dir, ".sandcastle", ".env.example"),
+      "utf-8",
+    );
+    expect(envExample).toContain("GITLAB_TOKEN=");
+    expect(envExample).not.toContain("GH_TOKEN=");
+  });
+
   it("generates .env.example without GH_TOKEN when backlog manager is beads", async () => {
     const dir = await makeDir();
     await runScaffold(dir, {
@@ -1152,9 +1166,10 @@ describe("InitService scaffold", () => {
   // --- Backlog manager ---
 
   describe("Backlog manager registry", () => {
-    it("listBacklogManagers returns github-issues and beads", () => {
+    it("listBacklogManagers returns github-issues, gitlab-issues, and beads", () => {
       const managers = listBacklogManagers();
       expect(managers.some((m) => m.name === "github-issues")).toBe(true);
+      expect(managers.some((m) => m.name === "gitlab-issues")).toBe(true);
       expect(managers.some((m) => m.name === "beads")).toBe(true);
     });
 
@@ -1177,6 +1192,41 @@ describe("InitService scaffold", () => {
         "GitHub CLI",
       );
       expect(manager!.templateArgs.BACKLOG_MANAGER_TOOLS).toContain("gh");
+    });
+
+    it("getBacklogManager returns gitlab-issues entry with expected templateArgs", () => {
+      const manager = getBacklogManager("gitlab-issues");
+      expect(manager).toBeDefined();
+      expect(manager!.label).toBe("GitLab Issues");
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain(
+        "glab issue list",
+      );
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain(
+        "--label Sandcastle",
+      );
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain(
+        "--output json",
+      );
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain("jq");
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain("iid");
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain("description");
+      expect(manager!.templateArgs.LIST_TASKS_COMMAND).toContain("labels");
+      expect(manager!.templateArgs.VIEW_TASK_COMMAND).toContain(
+        "glab issue view",
+      );
+      expect(manager!.templateArgs.CLOSE_TASK_COMMAND).toContain(
+        "glab issue note",
+      );
+      expect(manager!.templateArgs.CLOSE_TASK_COMMAND).toContain(
+        "Completed by Sandcastle",
+      );
+      expect(manager!.templateArgs.CLOSE_TASK_COMMAND).toContain(
+        "glab issue close",
+      );
+      expect(manager!.templateArgs.BACKLOG_MANAGER_TOOLS).toContain(
+        "GitLab CLI",
+      );
+      expect(manager!.templateArgs.BACKLOG_MANAGER_TOOLS).toContain("glab");
     });
 
     it("getBacklogManager returns beads entry with expected templateArgs", () => {
@@ -1244,6 +1294,31 @@ describe("InitService scaffold", () => {
       expect(prompt).not.toContain("{{CLOSE_TASK_COMMAND}}");
     });
 
+    it("simple-loop with gitlab-issues produces prompt with glab issue commands", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        templateName: "simple-loop",
+        backlogManager: getBacklogManager("gitlab-issues"),
+      });
+
+      const prompt = await readFile(
+        join(dir, ".sandcastle", "prompt.md"),
+        "utf-8",
+      );
+      expect(prompt).toContain("glab issue list");
+      expect(prompt).toContain("--label Sandcastle");
+      expect(prompt).toContain("--output json");
+      expect(prompt).toContain("iid");
+      expect(prompt).toContain("description");
+      expect(prompt).toContain("labels");
+      expect(prompt).toContain("glab issue note");
+      expect(prompt).toContain("Completed by Sandcastle");
+      expect(prompt).toContain("glab issue close");
+      expect(prompt).not.toContain("gh issue");
+      expect(prompt).not.toContain("{{LIST_TASKS_COMMAND}}");
+      expect(prompt).not.toContain("{{CLOSE_TASK_COMMAND}}");
+    });
+
     it("simple-loop with beads skips --label Sandcastle (no label to strip)", async () => {
       const dir = await makeDir();
       await runScaffold(dir, {
@@ -1271,6 +1346,37 @@ describe("InitService scaffold", () => {
         "utf-8",
       );
       expect(prompt).toContain("--label Sandcastle");
+    });
+
+    it("simple-loop with gitlab-issues retains --label Sandcastle when createLabel is true", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        templateName: "simple-loop",
+        backlogManager: getBacklogManager("gitlab-issues"),
+        createLabel: true,
+      });
+
+      const prompt = await readFile(
+        join(dir, ".sandcastle", "prompt.md"),
+        "utf-8",
+      );
+      expect(prompt).toContain("--label Sandcastle");
+    });
+
+    it("simple-loop with gitlab-issues strips --label Sandcastle when createLabel is false", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        templateName: "simple-loop",
+        backlogManager: getBacklogManager("gitlab-issues"),
+        createLabel: false,
+      });
+
+      const prompt = await readFile(
+        join(dir, ".sandcastle", "prompt.md"),
+        "utf-8",
+      );
+      expect(prompt).not.toContain("--label Sandcastle");
+      expect(prompt).toContain("glab issue list");
     });
 
     it("simple-loop with github-issues strips --label Sandcastle when createLabel is false", async () => {
@@ -1494,6 +1600,22 @@ describe("InitService scaffold", () => {
       expect(prompt).not.toContain("{{VIEW_TASK_COMMAND}}");
     });
 
+    it("parallel-planner with gitlab-issues produces implement-prompt with glab issue view", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        templateName: "parallel-planner",
+        backlogManager: getBacklogManager("gitlab-issues"),
+      });
+
+      const prompt = await readFile(
+        join(dir, ".sandcastle", "implement-prompt.md"),
+        "utf-8",
+      );
+      expect(prompt).toContain("glab issue view");
+      expect(prompt).not.toContain("gh issue");
+      expect(prompt).not.toContain("{{VIEW_TASK_COMMAND}}");
+    });
+
     it("parallel-planner with github-issues produces merge-prompt with gh issue close", async () => {
       const dir = await makeDir();
       await runScaffold(dir, {
@@ -1521,6 +1643,22 @@ describe("InitService scaffold", () => {
         "utf-8",
       );
       expect(prompt).toContain("bd close");
+      expect(prompt).not.toContain("gh issue");
+      expect(prompt).not.toContain("{{CLOSE_TASK_COMMAND}}");
+    });
+
+    it("parallel-planner with gitlab-issues produces merge-prompt with glab issue close", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        templateName: "parallel-planner",
+        backlogManager: getBacklogManager("gitlab-issues"),
+      });
+
+      const prompt = await readFile(
+        join(dir, ".sandcastle", "merge-prompt.md"),
+        "utf-8",
+      );
+      expect(prompt).toContain("glab issue close");
       expect(prompt).not.toContain("gh issue");
       expect(prompt).not.toContain("{{CLOSE_TASK_COMMAND}}");
     });
@@ -1719,6 +1857,23 @@ describe("InitService scaffold", () => {
       );
       expect(dockerfile).toContain("GitHub CLI");
       expect(dockerfile).toContain("gh");
+      expect(dockerfile).not.toContain("{{BACKLOG_MANAGER_TOOLS}}");
+    });
+
+    it("scaffold with gitlab-issues produces Dockerfile with GitLab CLI install", async () => {
+      const dir = await makeDir();
+      await runScaffold(dir, {
+        backlogManager: getBacklogManager("gitlab-issues"),
+      });
+
+      const dockerfile = await readFile(
+        join(dir, ".sandcastle", "Dockerfile"),
+        "utf-8",
+      );
+      expect(dockerfile).toContain("GitLab CLI");
+      expect(dockerfile).toContain("gitlab-org/cli");
+      expect(dockerfile).toContain("glab");
+      expect(dockerfile).not.toContain("GitHub CLI");
       expect(dockerfile).not.toContain("{{BACKLOG_MANAGER_TOOLS}}");
     });
 
