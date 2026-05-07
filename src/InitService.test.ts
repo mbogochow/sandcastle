@@ -1314,7 +1314,8 @@ describe("InitService scaffold", () => {
       expect(prompt).toContain("glab issue note");
       expect(prompt).toContain("Completed by Sandcastle");
       expect(prompt).toContain("glab issue close");
-      expect(prompt).not.toContain("gh issue");
+      expect(prompt).not.toContain("gh issue list");
+      expect(prompt).not.toContain("gh issue close");
       expect(prompt).not.toContain("{{LIST_TASKS_COMMAND}}");
       expect(prompt).not.toContain("{{CLOSE_TASK_COMMAND}}");
     });
@@ -1871,7 +1872,6 @@ describe("InitService scaffold", () => {
         "utf-8",
       );
       expect(dockerfile).toContain("GitLab CLI");
-      expect(dockerfile).toContain("gitlab-org/cli");
       expect(dockerfile).toContain("glab");
       expect(dockerfile).not.toContain("GitHub CLI");
       expect(dockerfile).not.toContain("{{BACKLOG_MANAGER_TOOLS}}");

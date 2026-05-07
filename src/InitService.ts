@@ -269,7 +269,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \\
   && rm -rf /var/lib/apt/lists/*`;
 
 const GITLAB_CLI_TOOLS = `# Install GitLab CLI (glab)
-RUN curl -fsSL https://gitlab.com/gitlab-org/cli/-/raw/main/scripts/install.sh | sh`;
+RUN curl -sSL "https://raw.githubusercontent.com/upciti/wakemeops/main/assets/install_repository" | bash
+RUN apt-get update && apt-get install -y glab \\
+  && rm -rf /var/lib/apt/lists/*`;
 
 const BEADS_TOOLS = `# Install system dependencies for Beads
 RUN apt-get update && apt-get install -y \\
