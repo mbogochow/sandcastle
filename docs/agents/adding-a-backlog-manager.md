@@ -86,7 +86,7 @@ Add an entry to `BACKLOG_MANAGER_REGISTRY` in [`src/InitService.ts`](../../src/I
   name: "gitlab",
   label: "GitLab Issues",
   templateArgs: {
-    LIST_TASKS_COMMAND: `glab issue list --opened --output json`,
+    LIST_TASKS_COMMAND: `glab issue list --output json`,
     VIEW_TASK_COMMAND: "glab issue view <ID>",
     CLOSE_TASK_COMMAND: `glab issue close <ID>`,
     BACKLOG_MANAGER_TOOLS: GLAB_TOOLS,

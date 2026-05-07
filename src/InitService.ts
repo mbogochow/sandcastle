@@ -306,7 +306,7 @@ GH_TOKEN=`,
     name: "gitlab-issues",
     label: "GitLab Issues",
     templateArgs: {
-      LIST_TASKS_COMMAND: `glab issue list --opened --label Sandcastle --output json | jq '[.[] | {iid, title, description, labels}]'`,
+      LIST_TASKS_COMMAND: `glab issue list --label Sandcastle --output json | jq '[.[] | {iid, title, description, labels}]'`,
       VIEW_TASK_COMMAND: "glab issue view <ID>",
       CLOSE_TASK_COMMAND: `glab issue note <ID> --message "Completed by Sandcastle" && glab issue close <ID>`,
       BACKLOG_MANAGER_TOOLS: GITLAB_CLI_TOOLS,
