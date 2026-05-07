@@ -247,6 +247,17 @@ export interface BacklogManagerEntry {
   };
   /** Lines to append to `.env.example` for this backlog manager, or empty string if none needed. */
   readonly envExample: string;
+  /**
+   * Optional support for the `Sandcastle` issue label that templates filter by.
+   * When present, `sandcastle init` offers to create the label on the user's project using
+   * `createCommand`, and prompt files retain `--label Sandcastle` unless opted out.
+   */
+  readonly sandcastleLabel?: {
+    /** Display name of the issue tracker (e.g. "GitHub", "GitLab"). */
+    readonly providerName: string;
+    /** Shell command that creates the `Sandcastle` label on the current project. */
+    readonly createCommand: string;
+  };
 }
 
 const GITHUB_CLI_TOOLS = `# Install GitHub CLI
@@ -256,6 +267,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \\
   | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \\
   && apt-get update && apt-get install -y gh \\
   && rm -rf /var/lib/apt/lists/*`;
+
+const GITLAB_CLI_TOOLS = `# Install GitLab CLI (glab)
+RUN curl -fsSL https://gitlab.com/gitlab-org/cli/-/raw/main/scripts/install.sh | sh`;
 
 const BEADS_TOOLS = `# Install system dependencies for Beads
 RUN apt-get update && apt-get install -y \\
@@ -283,6 +297,28 @@ const BACKLOG_MANAGER_REGISTRY: BacklogManagerEntry[] = [
     },
     envExample: `# GitHub personal access token
 GH_TOKEN=`,
+    sandcastleLabel: {
+      providerName: "GitHub",
+      createCommand: `gh label create "Sandcastle" --description "Issues for Sandcastle to work on" --color "F9A825" 2>/dev/null`,
+    },
+  },
+  {
+    name: "gitlab-issues",
+    label: "GitLab Issues",
+    templateArgs: {
+      LIST_TASKS_COMMAND: `glab issue list --opened --label Sandcastle --output json | jq '[.[] | {iid, title, description, labels}]'`,
+      VIEW_TASK_COMMAND: "glab issue view <ID>",
+      CLOSE_TASK_COMMAND: `glab issue note <ID> --message "Completed by Sandcastle" && glab issue close <ID>`,
+      BACKLOG_MANAGER_TOOLS: GITLAB_CLI_TOOLS,
+    },
+    envExample: `# GitLab personal access token
+GITLAB_TOKEN=
+# Optional for self-hosted GitLab instances
+# GITLAB_HOST=https://gitlab.example.com`,
+    sandcastleLabel: {
+      providerName: "GitLab",
+      createCommand: `glab label create --name "Sandcastle" --description "Issues for Sandcastle to work on" --color "#F9A825" 2>/dev/null`,
+    },
   },
   {
     name: "beads",
